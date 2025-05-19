@@ -1,33 +1,15 @@
-# Этап сборки
-FROM node:20-alpine AS builder
-
-# Устанавливаем рабочую директорию внутри контейнера
-WORKDIR /app
-
-# Копируем package.json и package-lock.json
-COPY package*.json ./
-
-# Устанавливаем зависимости
-RUN npm install
-
-# Копируем все остальные файлы в контейнер
-COPY . .
-
-
-# Строим проект Nuxt
-RUN npm run build
-
 # Финальный этап
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем только необходимые файлы из этапа сборки
-COPY --from=builder /app/.output /app/.output
-COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/package*.json ./
+RUN npm install --omit=dev
 
-# Указываем порт, на котором будет работать приложение
+COPY --from=builder /app/dist /app/dist
+
+RUN npm install -g vite
+
 EXPOSE 3000
 
-# Команда для запуска приложения
-CMD ["npm", "run", "start"]
+CMD ["vite", "preview", "--host", "--port", "3000"]
